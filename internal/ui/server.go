@@ -54,108 +54,9 @@ func StartServer(ctx context.Context, address string) error {
 func buildRoutes(e *echo.Echo) {
 	apiAddress := os.Getenv("API_REMOTE_ADDRESS")
 
-	e.GET("/", func(c echo.Context) error {
-		packSizes, err := getPackSizes(c.Request().Context(), apiAddress)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
-		}
-
-		pageData := map[string]interface{}{
-			"PackSizes": packSizes,
-		}
-
-		return c.Render(http.StatusOK, "index", pageData)
-	})
-
-	e.POST("/", func(c echo.Context) error {
-		orderQtyFormData := c.FormValue("quantity")
-		if orderQtyFormData == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "quantity is required"})
-		}
-
-		orderQty, err := strconv.Atoi(orderQtyFormData)
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
-		}
-
-		orderData, err := json.Marshal(models.Order{ItemQty: orderQty})
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-
-		resp, err := http.DefaultClient.Post(apiAddress+"/pack-order", "application/json", bytes.NewReader(orderData))
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-		defer resp.Body.Close()
-
-		var orderPacks map[int]int
-		if err := json.NewDecoder(resp.Body).Decode(&orderPacks); err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-
-		results := []map[string]interface{}{}
-		for packSize, packQty := range orderPacks {
-			results = append(results, map[string]interface{}{
-				"Size":     packSize,
-				"Quantity": packQty,
-			})
-		}
-
-		slices.SortFunc(results, func(a, b map[string]interface{}) int {
-			return b["Size"].(int) - a["Size"].(int)
-		})
-
-		packSizes, err := getPackSizes(c.Request().Context(), apiAddress)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
-		}
-
-		pageData := map[string]interface{}{
-			"PackSizes": packSizes,
-			"Results":   results,
-		}
-
-		c.Set("results", results)
-
-		return c.Render(http.StatusOK, "index", pageData)
-	})
-
-	e.POST("/pack-sizes", func(c echo.Context) error {
-		packSizesFormData := c.FormValue("packSizes")
-		if packSizesFormData == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "packSizes is required"})
-		}
-
-		packSizesStringArr := strings.Split(packSizesFormData, ",")
-
-		packSizeModels := []models.PackSize{}
-		for _, packSize := range packSizesStringArr {
-			packSizeInt, err := strconv.Atoi(strings.TrimSpace(packSize))
-			if err != nil {
-				return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
-			}
-
-			packSizeModels = append(packSizeModels, models.PackSize{MaxItems: packSizeInt})
-		}
-
-		packSizeData, err := json.Marshal(packSizeModels)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-
-		resp, err := http.DefaultClient.Post(apiAddress+"/pack-sizes", "application/json", bytes.NewReader(packSizeData))
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusNoContent {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update pack sizes"})
-		}
-
-		return c.Redirect(http.StatusFound, "/")
-	})
+	e.GET("/", indexHandler(apiAddress))
+	e.POST("/", packOrderHandler(apiAddress))
+	e.POST("/pack-sizes", updatePackSizesHandler(apiAddress))
 
 }
 
@@ -175,12 +76,128 @@ func getPackSizes(ctx context.Context, address string) ([]int, error) {
 		return nil, fmt.Errorf("failed to unmarshal pack sizes: %w", err)
 	}
 
+	return mapPackSizedToViewModel(packSizesData), nil
+}
+
+func mapPackSizedToViewModel(packSizes []models.PackSize) []int {
 	packSizesView := []int{}
-	for _, packSizeData := range packSizesData {
+	for _, packSizeData := range packSizes {
 		packSizesView = append(packSizesView, packSizeData.MaxItems)
 	}
 
 	sort.Ints(packSizesView)
 
-	return packSizesView, nil
+	return packSizesView
+}
+
+func indexHandler(apiAddress string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		packSizes, err := getPackSizes(c.Request().Context(), apiAddress)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+
+		pageData := map[string]interface{}{
+			"PackSizes": packSizes,
+		}
+
+		return c.Render(http.StatusOK, "index", pageData)
+	}
+}
+
+func packOrderHandler(apiAddress string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		var order models.Order
+		if err := c.Bind(&order); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		}
+
+		orderData, err := json.Marshal(order)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+
+		resp, err := http.DefaultClient.Post(apiAddress+"/pack-order", "application/json", bytes.NewReader(orderData))
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		defer resp.Body.Close()
+
+		var orderPacks map[int]int
+		if err := json.NewDecoder(resp.Body).Decode(&orderPacks); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+
+		packSizes, err := getPackSizes(c.Request().Context(), apiAddress)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
+		}
+
+		pageData := map[string]interface{}{
+			"PackSizes": packSizes,
+			"Results":   mapOrderPacksToViewModel(orderPacks),
+		}
+
+		return c.Render(http.StatusOK, "index", pageData)
+	}
+}
+
+func mapOrderPacksToViewModel(orderPacks map[int]int) []map[string]int {
+	results := []map[string]int{}
+	for packSize, packQty := range orderPacks {
+		results = append(results, map[string]int{
+			"Size":     packSize,
+			"Quantity": packQty,
+		})
+	}
+
+	slices.SortFunc(results, func(a, b map[string]int) int {
+		return b["Size"] - a["Size"]
+	})
+
+	return results
+}
+
+func updatePackSizesHandler(apiAddress string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		packSizes, err := extractPackSizes(c.FormValue("packSizes"))
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		}
+
+		packSizeData, err := json.Marshal(packSizes)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+
+		resp, err := http.DefaultClient.Post(apiAddress+"/pack-sizes", "application/json", bytes.NewReader(packSizeData))
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusNoContent {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update pack sizes"})
+		}
+
+		return c.Redirect(http.StatusFound, "/")
+	}
+}
+
+func extractPackSizes(packSizes string) ([]models.PackSize, error) {
+	if packSizes == "" {
+		return nil, fmt.Errorf("pack sizes cannot be empty")
+	}
+
+	packSizeModels := []models.PackSize{}
+	for _, packSize := range strings.Split(packSizes, ",") {
+		packSizeInt, err := strconv.Atoi(strings.TrimSpace(packSize))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse pack size: %w", err)
+		}
+
+		packSizeModels = append(packSizeModels, models.PackSize{MaxItems: packSizeInt})
+	}
+
+	return packSizeModels, nil
 }

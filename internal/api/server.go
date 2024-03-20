@@ -46,16 +46,24 @@ func StartServer(ctx context.Context, address string, packingService PackingServ
 }
 
 func buildRoutes(e *echo.Echo, packingService PackingService) {
-	e.GET("/pack-sizes", func(c echo.Context) error {
+	e.GET("/pack-sizes", getPackSizesHandler(packingService))
+	e.POST("/pack-sizes", updatePackSizesHadler(packingService))
+	e.POST("/pack-order", packOrderHandler(packingService))
+}
+
+func getPackSizesHandler(packingService PackingService) func(c echo.Context) error {
+	return func(c echo.Context) error {
 		packSizes, err := packingService.GetPackSizes(c.Request().Context())
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
 
 		return c.JSON(http.StatusOK, packSizes)
-	})
+	}
+}
 
-	e.POST("/pack-sizes", func(c echo.Context) error {
+func updatePackSizesHadler(packingService PackingService) func(c echo.Context) error {
+	return func(c echo.Context) error {
 		var packSizes []models.PackSize
 		if err := c.Bind(&packSizes); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -66,9 +74,11 @@ func buildRoutes(e *echo.Echo, packingService PackingService) {
 		}
 
 		return c.NoContent(http.StatusNoContent)
-	})
+	}
+}
 
-	e.POST("/pack-order", func(c echo.Context) error {
+func packOrderHandler(packingService PackingService) func(c echo.Context) error {
+	return func(c echo.Context) error {
 		var order models.Order
 		if err := c.Bind(&order); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -80,5 +90,5 @@ func buildRoutes(e *echo.Echo, packingService PackingService) {
 		}
 
 		return c.JSON(http.StatusOK, packs)
-	})
+	}
 }
