@@ -170,7 +170,13 @@ func updatePackSizesHandler(apiAddress string) func(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
 
-		resp, err := http.DefaultClient.Post(apiAddress+"/pack-sizes", "application/json", bytes.NewReader(packSizeData))
+		req, err := http.NewRequest(http.MethodPut, apiAddress+"/pack-sizes", bytes.NewReader(packSizeData))
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}

@@ -47,7 +47,7 @@ func StartServer(ctx context.Context, address string, packingService PackingServ
 
 func buildRoutes(e *echo.Echo, packingService PackingService) {
 	e.GET("/pack-sizes", getPackSizesHandler(packingService))
-	e.POST("/pack-sizes", updatePackSizesHadler(packingService))
+	e.PUT("/pack-sizes", updatePackSizesHadler(packingService))
 	e.POST("/pack-order", packOrderHandler(packingService))
 }
 
@@ -69,6 +69,10 @@ func updatePackSizesHadler(packingService PackingService) func(c echo.Context) e
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 		}
 
+		if len(packSizes) == 0 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "pack sizes cannot be empty"})
+		}
+
 		if err := packingService.UpdatePackSizes(c.Request().Context(), packSizes); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
@@ -82,6 +86,10 @@ func packOrderHandler(packingService PackingService) func(c echo.Context) error 
 		var order models.Order
 		if err := c.Bind(&order); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+		}
+
+		if order.ItemQty <= 0 {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "order quantity must be greater than 0"})
 		}
 
 		packs, err := packingService.CalculatePacks(c.Request().Context(), order)
