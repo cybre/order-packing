@@ -1,5 +1,7 @@
 # Order Packing
 
+The app demo is publicly available at https://order-packing.fly.dev
+
 ## Running Locally
 
 The solution is a multi-container application.  
