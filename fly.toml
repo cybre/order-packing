@@ -1,0 +1,27 @@
+# fly.toml app configuration file generated for order-packing on 2024-03-20T21:08:25+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'order-packing'
+primary_region = 'otp'
+
+[build]
+  dockerfile = "Dockerfile.fly"
+
+[env]
+  API_ADDRESS = '0.0.0.0:3000'
+  UI_ADDRESS = '0.0.0.0:8080'
+  UI_STATIC_DIR="static"
+  API_REMOTE_ADDRESS = 'http://order-packing.internal:3000'
+  PACKSIZES_JSON_FILE_PATH = '/app/packsizes.json'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  min_machines_running = 1
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

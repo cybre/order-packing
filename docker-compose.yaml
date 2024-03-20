@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  api:
+    image: order-packing-api
+    restart: on-failure:10
+    environment:
+      - API_ADDRESS=:3000
+      - PACKSIZES_JSON_FILE_PATH=/app/packsizes.json
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+  ui:
+    image: order-packing-ui
+    restart: on-failure:10
+    environment:
+      - UI_ADDRESS=:3001
+      - UI_STATIC_DIR=static
+      - API_REMOTE_ADDRESS=http://api:3000
+    ports:
+      - "3001:3001"
+    build:
+      context: .
+      dockerfile: Dockerfile.ui

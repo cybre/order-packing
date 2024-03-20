@@ -1,0 +1,96 @@
+{{ $results := .Results }} {{ $packSizes := .PackSizes }}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pack Sizing</title>
+    <link href="/static/bootstrap.min.css" rel="stylesheet" />
+    <link href="/static/main.css" rel="stylesheet" />
+  </head>
+  <body hx-boost="true" hx-history="false" hx-push-url="false">
+    <main class="container main-container">
+      <div>
+        <h3>Pack Sizes</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Size</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ range $packSizes }}
+            <tr>
+              <td>{{ . }}</td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
+
+        <form action="/pack-sizes" method="POST">
+          <div class="row g-2 justify-content-between">
+            <div class="col-auto flex-grow-1">
+              <input
+                type="text"
+                name="packSizes"
+                class="form-control"
+                placeholder="Pack Sizes (comma-separated)"
+                required
+              />
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn btn-primary">Update</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="mt-5">
+        <h3>Pack Order</h3>
+        <div class="pack-order__body">
+          <form
+            id="pack-order-form"
+            method="POST"
+            action="/"
+            class="row g-2 justify-content-between"
+          >
+            <div class="col-auto flex-grow-1">
+              <input
+                type="number"
+                name="quantity"
+                class="form-control"
+                placeholder="Quantity"
+              />
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn btn-primary">Pack</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="pack-order__result" id="pack-result">
+          {{ if $results }}
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th>Quantity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{ range $results }}
+              <tr>
+                <td>{{ .Size }}</td>
+                <td>{{ .Quantity }}</td>
+              </tr>
+              {{ end }}
+            </tbody>
+          </table>
+          {{ end }}
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
