@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cybre/re-partners-assignment/internal/models"
+	"github.com/cybre/order-packing/internal/models"
 )
 
 // JSONPackSizeProvider is a PackSizeProvider that reads and stores pack sizes in a JSON file

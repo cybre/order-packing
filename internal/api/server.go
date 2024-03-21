@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cybre/re-partners-assignment/internal/models"
+	"github.com/cybre/order-packing/internal/models"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )

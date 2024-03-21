@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cybre/re-partners-assignment/internal/api"
-	"github.com/cybre/re-partners-assignment/internal/api/testdata"
-	"github.com/cybre/re-partners-assignment/internal/models"
+	"github.com/cybre/order-packing/internal/api"
+	"github.com/cybre/order-packing/internal/api/testdata"
+	"github.com/cybre/order-packing/internal/models"
 	"github.com/labstack/echo/v4"
 )
 

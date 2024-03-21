@@ -1,5 +1,6 @@
 # Order Packing
 
+This is a solution to a take-home assignment from RE Partners.
 The app demo is publicly available at https://order-packing.fly.dev
 
 ## Running Locally

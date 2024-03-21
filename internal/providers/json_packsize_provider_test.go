@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cybre/re-partners-assignment/internal/models"
-	"github.com/cybre/re-partners-assignment/internal/providers"
+	"github.com/cybre/order-packing/internal/models"
+	"github.com/cybre/order-packing/internal/providers"
 )
 
 func TestJSONPackSizeProvider_GetPackSizes(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/cybre/re-partners-assignment/internal/models"
+	"github.com/cybre/order-packing/internal/models"
 )
 
 var (

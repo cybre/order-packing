@@ -5,9 +5,9 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/cybre/re-partners-assignment/internal/api"
-	"github.com/cybre/re-partners-assignment/internal/providers"
-	"github.com/cybre/re-partners-assignment/internal/services"
+	"github.com/cybre/order-packing/internal/api"
+	"github.com/cybre/order-packing/internal/providers"
+	"github.com/cybre/order-packing/internal/services"
 	"github.com/joho/godotenv"
 )
 

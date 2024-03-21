@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cybre/re-partners-assignment/internal/models"
-	"github.com/cybre/re-partners-assignment/internal/services"
-	"github.com/cybre/re-partners-assignment/internal/services/testdata"
+	"github.com/cybre/order-packing/internal/models"
+	"github.com/cybre/order-packing/internal/services"
+	"github.com/cybre/order-packing/internal/services/testdata"
 )
 
 func TestCalculatePacls_ProviderError_ReturnError(t *testing.T) {

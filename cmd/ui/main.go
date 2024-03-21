@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/cybre/re-partners-assignment/internal/ui"
+	"github.com/cybre/order-packing/internal/ui"
 	"github.com/joho/godotenv"
 )
 

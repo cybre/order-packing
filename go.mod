@@ -1,4 +1,4 @@
-module github.com/cybre/re-partners-assignment
+module github.com/cybre/order-packing
 
 go 1.21.7
 

@@ -3,7 +3,7 @@ package testdata
 import (
 	"context"
 
-	"github.com/cybre/re-partners-assignment/internal/models"
+	"github.com/cybre/order-packing/internal/models"
 )
 
 type MockPackingService struct {
