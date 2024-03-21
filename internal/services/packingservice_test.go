@@ -119,6 +119,17 @@ func TestCalculatePacks(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
+			name:      "Order quantity is 125",
+			packSizes: []models.PackSize{{MaxItems: 10}, {MaxItems: 20}, {MaxItems: 50}, {MaxItems: 100}, {MaxItems: 200}},
+			order:     models.Order{ItemQty: 125},
+			expectedPacks: map[int]int{
+				100: 1,
+				20:  1,
+				10:  1,
+			},
+			expectedErr: nil,
+		},
+		{
 			name:          "Order quantity is 0",
 			packSizes:     defaultPackSizes,
 			order:         models.Order{ItemQty: 0},

@@ -62,12 +62,14 @@ func (s PackingService) CalculatePacks(ctx context.Context, order models.Order) 
 
 	// Ensure the pack sizes are sorted in descending order
 	slices.SortFunc(packSizes, func(a, b models.PackSize) int {
-		return b.MaxItems - a.MaxItems
+		return a.MaxItems - b.MaxItems
 	})
 
+	fmt.Printf("packSizes: %v\n", packSizes)
 	// Generate all possible solutions
 	solutions := generateSolutions(packSizes, order.ItemQty)
 
+	fmt.Printf("solutions: %v\n", solutions)
 	// Pick the best solution and return it
 	solution := pickBestSolution(solutions)
 
@@ -77,7 +79,6 @@ func (s PackingService) CalculatePacks(ctx context.Context, order models.Order) 
 func generateSolutions(packSizes []models.PackSize, orderQty int) []map[int]int {
 	solutions := []map[int]int{}
 
-	// Iteratively and recursively generate all possible solutions
 	for i := 0; i < len(packSizes); i++ {
 		solutions = append(solutions, generateSolution(packSizes[i:], orderQty))
 	}
@@ -88,50 +89,53 @@ func generateSolutions(packSizes []models.PackSize, orderQty int) []map[int]int 
 func generateSolution(packSizes []models.PackSize, orderQty int) map[int]int {
 	solution := map[int]int{}
 
-	// Base case
 	if len(packSizes) == 0 {
 		return solution
 	}
 
-	for i := 0; i < len(packSizes); i++ {
-		// Determine the number of packs of the current pack size that can be used to fulfill the order
-		packSize := packSizes[i]
+	for orderQty > 0 {
+		if orderQty <= packSizes[0].MaxItems {
+			solution[packSizes[0].MaxItems]++
+			orderQty -= packSizes[0].MaxItems
+			break
+		}
 
-		packQty := orderQty / packSize.MaxItems
+		if len(packSizes) == 1 {
+			solution[packSizes[0].MaxItems]++
+			orderQty -= packSizes[0].MaxItems
+			continue
+		}
 
-		// If the pack size can be used to fulfill the order, use it and generate the remainder of the solution
-		// using the remaining pack sizes
-		if packQty > 0 {
-			solution[packSize.MaxItems] = packQty
-			orderQty -= packQty * packSize.MaxItems
+		for i := 1; i < len(packSizes); i++ {
+			packSize := packSizes[i]
 
-			branchSolution := generateSolution(packSizes[i+1:], orderQty)
-			for k, v := range branchSolution {
-				solution[k] += v
-				orderQty -= k * v
+			if packSize.MaxItems > orderQty {
+				previousPackSize := packSizes[i-1]
+				solution[previousPackSize.MaxItems]++
+				orderQty -= previousPackSize.MaxItems
+				break
 			}
 
-			break
-		}
+			if i == len(packSizes)-1 {
+				solution[packSize.MaxItems]++
+				orderQty -= packSize.MaxItems
+				break
+			}
 
-		// Otherwise, if this is the last pack size that can fully fulfill the order, use it and break
-		if i != len(packSizes)-1 && packSizes[i+1].MaxItems < orderQty {
-			solution[packSize.MaxItems] = 1
-			orderQty -= packSize.MaxItems
-			break
+			if orderQty <= 0 {
+				break
+			}
 		}
-	}
-
-	// If there is a remainder, it must be fulfilled with an additional smallest pack size
-	if orderQty > 0 {
-		minPackSize := packSizes[len(packSizes)-1].MaxItems
-		solution[minPackSize]++
 	}
 
 	return solution
 }
 
 func pickBestSolution(solutions []map[int]int) map[int]int {
+	if len(solutions) == 0 {
+		return map[int]int{}
+	}
+
 	bestSolution := solutions[0]
 
 	for _, solution := range solutions[1:] {
