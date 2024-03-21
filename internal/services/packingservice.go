@@ -65,11 +65,9 @@ func (s PackingService) CalculatePacks(ctx context.Context, order models.Order) 
 		return a.MaxItems - b.MaxItems
 	})
 
-	fmt.Printf("packSizes: %v\n", packSizes)
 	// Generate all possible solutions
 	solutions := generateSolutions(packSizes, order.ItemQty)
 
-	fmt.Printf("solutions: %v\n", solutions)
 	// Pick the best solution and return it
 	solution := pickBestSolution(solutions)
 
