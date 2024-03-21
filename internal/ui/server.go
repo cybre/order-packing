@@ -136,6 +136,7 @@ func packOrderHandler(apiAddress string) func(c echo.Context) error {
 		pageData := map[string]interface{}{
 			"PackSizes": packSizes,
 			"Results":   mapOrderPacksToViewModel(orderPacks),
+			"ItemQty":   order.ItemQty,
 		}
 
 		return c.Render(http.StatusOK, "index", pageData)
