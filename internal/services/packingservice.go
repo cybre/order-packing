@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"math"
 	"slices"
 
 	"github.com/cybre/order-packing/internal/models"
@@ -60,111 +61,68 @@ func (s PackingService) CalculatePacks(ctx context.Context, order models.Order) 
 		return nil, ErrNoPackSizesAvailable
 	}
 
-	// Ensure the pack sizes are sorted in descending order
+	return minPacks(packSizes, order.ItemQty), nil
+}
+
+func minPacks(packSizes []models.PackSize, orderQty int) map[int]int {
+	// Ensure the pack sizes are sorted in ascending order
 	slices.SortFunc(packSizes, func(a, b models.PackSize) int {
 		return a.MaxItems - b.MaxItems
 	})
 
-	// Generate all possible solutions
-	solutions := generateSolutions(packSizes, order.ItemQty)
+	// Calculate the maximum amount to consider, including possible overshoots (orderQty + smallest pack size)
+	maxAmount := orderQty + packSizes[0].MaxItems
 
-	// Pick the best solution and return it
-	solution := pickBestSolution(solutions)
-
-	return solution, nil
-}
-
-func generateSolutions(packSizes []models.PackSize, orderQty int) []map[int]int {
-	solutions := []map[int]int{}
-
-	for i := 0; i < len(packSizes); i++ {
-		solutions = append(solutions, generateSolution(packSizes[i:], orderQty))
+	// Initialize the dynamic programming table (for memoization)
+	dp := make([]int, maxAmount+1)
+	for i := range dp {
+		dp[i] = math.MaxInt32 // Initialize with a large value
 	}
 
-	return solutions
-}
+	// Keep track of the pack sizes used for each amount (for backtracking)
+	packSizesUsed := make([]int, maxAmount+1)
 
-func generateSolution(packSizes []models.PackSize, orderQty int) map[int]int {
-	solution := map[int]int{}
+	// Base case: 0 packs are needed for 0 items
+	dp[0] = 0
 
-	if len(packSizes) == 0 {
-		return solution
-	}
-
-	for orderQty > 0 {
-		if orderQty <= packSizes[0].MaxItems {
-			solution[packSizes[0].MaxItems]++
-			orderQty -= packSizes[0].MaxItems
-			break
-		}
-
-		if len(packSizes) == 1 {
-			solution[packSizes[0].MaxItems]++
-			orderQty -= packSizes[0].MaxItems
-			continue
-		}
-
-		for i := 1; i < len(packSizes); i++ {
-			packSize := packSizes[i]
-
-			if packSize.MaxItems > orderQty {
-				previousPackSize := packSizes[i-1]
-				solution[previousPackSize.MaxItems]++
-				orderQty -= previousPackSize.MaxItems
-				break
-			}
-
-			if i == len(packSizes)-1 {
-				solution[packSize.MaxItems]++
-				orderQty -= packSize.MaxItems
-				break
-			}
-
-			if orderQty <= 0 {
-				break
+	// Calculate the minimum number of packs needed for each amount from packSize.MaxItems to maxAmount
+	for _, packSize := range packSizes {
+		for i := packSize.MaxItems; i <= maxAmount; i++ {
+			if dp[i-packSize.MaxItems]+1 < dp[i] {
+				dp[i] = dp[i-packSize.MaxItems] + 1
+				packSizesUsed[i] = packSize.MaxItems
 			}
 		}
 	}
 
-	return solution
-}
+	// Check for an exact match first
+	if dp[orderQty] != math.MaxInt32 {
+		bestAmount := orderQty
 
-func pickBestSolution(solutions []map[int]int) map[int]int {
-	if len(solutions) == 0 {
-		return map[int]int{}
-	}
-
-	bestSolution := solutions[0]
-
-	for _, solution := range solutions[1:] {
-		// Pick the solution with the least number of items
-		if totalItems(solution) < totalItems(bestSolution) {
-			bestSolution = solution
+		// Backtrack to find the pack size combination for the exact amount
+		packSizeCombination := make(map[int]int)
+		for i := bestAmount; i > 0; i -= packSizesUsed[i] {
+			packSizeCombination[packSizesUsed[i]]++
 		}
 
-		// If the number of items is the same, pick the solution with the least number of packs
-		if totalItems(solution) == totalItems(bestSolution) && totalPacks(solution) < totalPacks(bestSolution) {
-			bestSolution = solution
+		return packSizeCombination
+	}
+
+	// If no exact match, find the minimum number of pack size for any overshoot
+	minPackSizes := math.MaxInt32
+	bestAmount := 0
+	for i := orderQty; i <= maxAmount; i++ {
+		if dp[i] < minPackSizes {
+			minPackSizes = dp[i]
+			bestAmount = i
 		}
 	}
 
-	return bestSolution
-}
-
-func totalItems(packs map[int]int) int {
-	total := 0
-	for k, v := range packs {
-		total += k * v
+	// Backtrack to find the pack size combination for the best overshoot amount
+	packSizeCombination := make(map[int]int)
+	for i := bestAmount; i > 0; i -= packSizesUsed[i] {
+		packSizeCombination[packSizesUsed[i]]++
 	}
 
-	return total
-}
-
-func totalPacks(packs map[int]int) int {
-	total := 0
-	for _, v := range packs {
-		total += v
-	}
-
-	return total
+	return packSizeCombination
 }
