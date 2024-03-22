@@ -108,17 +108,17 @@ func minPacks(packSizes []models.PackSize, orderQty int) map[int]int {
 		return packSizeCombination
 	}
 
-	// If no exact match, find the minimum number of pack size for any overshoot
-	minPackSizes := math.MaxInt32
+	// If no exact match, find the combination that minimizes the number of items sent out
+	minItemsSent := math.MaxInt32
 	bestAmount := 0
 	for i := orderQty; i <= maxAmount; i++ {
-		if dp[i] < minPackSizes {
-			minPackSizes = dp[i]
+		if dp[i] < math.MaxInt32 && i < minItemsSent {
+			minItemsSent = i
 			bestAmount = i
 		}
 	}
 
-	// Backtrack to find the pack size combination for the best overshoot amount
+	// Backtrack to find the pack size combination for the best amount
 	packSizeCombination := make(map[int]int)
 	for i := bestAmount; i > 0; i -= packSizesUsed[i] {
 		packSizeCombination[packSizesUsed[i]]++
